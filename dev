@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+backend_pid=""
+frontend_pid=""
+
+cleanup() {
+  for pid in "$backend_pid" "$frontend_pid"; do
+    if [[ -n "$pid" ]]; then
+      kill "$pid" 2>/dev/null || true
+    fi
+  done
+  wait 2>/dev/null || true
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+if curl -fsS --max-time 1 http://127.0.0.1:8000/health >/dev/null 2>&1; then
+  echo "Backend already running on http://127.0.0.1:8000"
+else
+  (cd "$root/backend" && exec uv run uvicorn app.main:app --host 127.0.0.1 --port 8000) &
+  backend_pid=$!
+fi
+
+(cd "$root/frontend" && exec npm run dev) &
+frontend_pid=$!
+
+if [[ -n "$backend_pid" ]]; then
+  wait -n "$backend_pid" "$frontend_pid"
+else
+  wait "$frontend_pid"
+fi
