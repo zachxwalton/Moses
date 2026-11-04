@@ -1,28 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { mockReceipt } from "@/data/mockReceipt";
 import Link from "next/link";
 
-type Person = {
-  id: number;
-  name: string;
-};
-
-type Assignments = {
-  [itemIndex: number]: number[];
-};
-
-const people: Person[] = [
-  { id: 1, name: "Imran" },
-  { id: 2, name: "Zach" },
-  { id: 3, name: "Niyoo" },
-];
+import { useSplit } from "@/context/SplitContext";
 
 export default function AssignItemsPage() {
-  const receipt = mockReceipt.receipt;
-
-  const [assignments, setAssignments] = useState<Assignments>({});
+  const {
+    receipt,
+    items,
+    people,
+    assignments,
+    setAssignments,
+  } = useSplit();
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
@@ -31,13 +20,20 @@ export default function AssignItemsPage() {
     }).format(amount);
   }
 
-  function togglePerson(itemIndex: number, personId: number) {
-    const currentAssignments = assignments[itemIndex] ?? [];
+  function togglePerson(
+    itemIndex: number,
+    personId: number
+  ) {
+    const currentAssignments =
+      assignments[itemIndex] ?? [];
 
-    const alreadyAssigned = currentAssignments.includes(personId);
+    const alreadyAssigned =
+      currentAssignments.includes(personId);
 
     const updatedAssignments = alreadyAssigned
-      ? currentAssignments.filter((id) => id !== personId)
+      ? currentAssignments.filter(
+          (id) => id !== personId
+        )
       : [...currentAssignments, personId];
 
     setAssignments({
@@ -46,17 +42,18 @@ export default function AssignItemsPage() {
     });
   }
 
-  const assignedItemCount = receipt.line_items.filter(
-    (_, index) => (assignments[index]?.length ?? 0) > 0
+  const assignedItemCount = items.filter(
+    (_, index) =>
+      (assignments[index]?.length ?? 0) > 0
   ).length;
 
   const allItemsAssigned =
-    assignedItemCount === receipt.line_items.length;
+    items.length > 0 &&
+    assignedItemCount === items.length;
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
-
         {/* Header */}
         <div className="mb-8">
           <p className="text-sm font-medium text-zinc-500">
@@ -80,7 +77,7 @@ export default function AssignItemsPage() {
             </span>
 
             <span className="text-sm text-zinc-500">
-              {assignedItemCount} / {receipt.line_items.length} assigned
+              {assignedItemCount} / {items.length} assigned
             </span>
           </div>
 
@@ -88,22 +85,49 @@ export default function AssignItemsPage() {
             <div
               className="h-full rounded-full bg-black transition-all"
               style={{
-                width: `${
-                  (assignedItemCount / receipt.line_items.length) * 100
-                }%`,
+                width:
+                  items.length > 0
+                    ? `${
+                        (assignedItemCount /
+                          items.length) *
+                        100
+                      }%`
+                    : "0%",
               }}
             />
           </div>
         </div>
 
+        {/* No People */}
+        {people.length === 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-800">
+              You need to add at least one person
+              before assigning items.
+            </p>
+
+            <Link
+              href="/people"
+              className="mt-3 inline-block text-sm font-semibold text-amber-900 underline"
+            >
+              Go back and add people
+            </Link>
+          </div>
+        )}
+
         {/* Receipt Items */}
         <div className="space-y-4">
-          {receipt.line_items.map((item, itemIndex) => {
-            const selectedPeople = assignments[itemIndex] ?? [];
+          {items.map((item, itemIndex) => {
+            const selectedPeople =
+              assignments[itemIndex] ?? [];
+
+            const itemTotal =
+              item.item_price *
+              item.item_quantity;
 
             const splitAmount =
               selectedPeople.length > 0
-                ? (item.item_price * item.item_quantity) /
+                ? itemTotal /
                   selectedPeople.length
                 : 0;
 
@@ -120,13 +144,14 @@ export default function AssignItemsPage() {
                     </h2>
 
                     <p className="mt-1 text-sm text-zinc-500">
-                      Quantity: {item.item_quantity}
+                      Quantity:{" "}
+                      {item.item_quantity}
                     </p>
                   </div>
 
                   <span className="font-semibold">
                     {formatCurrency(
-                      item.item_price * item.item_quantity
+                      itemTotal
                     )}
                   </span>
                 </div>
@@ -138,42 +163,56 @@ export default function AssignItemsPage() {
                   </p>
 
                   <div className="flex flex-wrap gap-2">
-                    {people.map((person) => {
-                      const selected =
-                        selectedPeople.includes(person.id);
+                    {people.map(
+                      (person) => {
+                        const selected =
+                          selectedPeople.includes(
+                            person.id
+                          );
 
-                      return (
-                        <button
-                          key={person.id}
-                          type="button"
-                          onClick={() =>
-                            togglePerson(itemIndex, person.id)
-                          }
-                          className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                            selected
-                              ? "border-black bg-black text-white"
-                              : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-                          }`}
-                        >
-                          {selected ? "✓ " : ""}
-                          {person.name}
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={person.id}
+                            type="button"
+                            onClick={() =>
+                              togglePerson(
+                                itemIndex,
+                                person.id
+                              )
+                            }
+                            className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                              selected
+                                ? "border-black bg-black text-white"
+                                : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
+                            }`}
+                          >
+                            {selected
+                              ? "✓ "
+                              : ""}
+                            {person.name}
+                          </button>
+                        );
+                      }
+                    )}
                   </div>
                 </div>
 
-                {/* Shared Amount */}
+                {/* Shared Item */}
                 {selectedPeople.length > 1 && (
                   <div className="mt-4 rounded-xl bg-zinc-100 px-4 py-3 text-sm">
-                    Split between {selectedPeople.length} people
+                    Split between{" "}
+                    {selectedPeople.length} people
                     <span className="ml-1 font-semibold">
-                      — {formatCurrency(splitAmount)} each
+                      —{" "}
+                      {formatCurrency(
+                        splitAmount
+                      )}{" "}
+                      each
                     </span>
                   </div>
                 )}
 
-                {/* Single Person */}
+                {/* One Person */}
                 {selectedPeople.length === 1 && (
                   <div className="mt-4 text-sm text-zinc-500">
                     Assigned to{" "}
@@ -181,14 +220,15 @@ export default function AssignItemsPage() {
                       {
                         people.find(
                           (person) =>
-                            person.id === selectedPeople[0]
+                            person.id ===
+                            selectedPeople[0]
                         )?.name
                       }
                     </span>
                   </div>
                 )}
 
-                {/* Unassigned */}
+                {/* Not Assigned */}
                 {selectedPeople.length === 0 && (
                   <div className="mt-4 text-sm text-amber-600">
                     Not assigned yet
@@ -201,21 +241,21 @@ export default function AssignItemsPage() {
 
         {/* Continue */}
         {allItemsAssigned ? (
-  <Link
-    href="/results"
-    className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
-  >
-    View Split →
-  </Link>
-) : (
-  <button
-    type="button"
-    disabled
-    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
-  >
-    View Split →
-  </button>
-)}
+          <Link
+            href="/results"
+            className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+          >
+            View Split →
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
+          >
+            View Split →
+          </button>
+        )}
 
         {!allItemsAssigned && (
           <p className="mt-3 text-center text-sm text-zinc-500">
