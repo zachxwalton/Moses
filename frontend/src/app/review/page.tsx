@@ -19,6 +19,14 @@ export default function ReviewReceiptPage() {
     item_price: 0,
   });
 
+  const [addingItem, setAddingItem] = useState(false);
+
+  const [newItem, setNewItem] = useState<ReceiptLineItem>({
+    item_name: "",
+    item_quantity: 1,
+    item_price: 0,
+  });
+
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
@@ -29,6 +37,7 @@ export default function ReviewReceiptPage() {
   function startEditing(index: number) {
     setEditingIndex(index);
     setEditItem({ ...items[index] });
+    setAddingItem(false);
   }
 
   function cancelEditing() {
@@ -43,6 +52,43 @@ export default function ReviewReceiptPage() {
 
     setItems(updatedItems);
     setEditingIndex(null);
+  }
+
+  function deleteItem(index: number) {
+    const updatedItems = items.filter((_, itemIndex) => itemIndex !== index);
+    setItems(updatedItems);
+
+    if (editingIndex === index) {
+      setEditingIndex(null);
+    }
+  }
+
+  function startAddingItem() {
+    setAddingItem(true);
+    setEditingIndex(null);
+
+    setNewItem({
+      item_name: "",
+      item_quantity: 1,
+      item_price: 0,
+    });
+  }
+
+  function cancelAddingItem() {
+    setAddingItem(false);
+  }
+
+  function addItem() {
+    if (!newItem.item_name.trim()) return;
+
+    setItems([...items, newItem]);
+    setAddingItem(false);
+
+    setNewItem({
+      item_name: "",
+      item_quantity: 1,
+      item_price: 0,
+    });
   }
 
   return (
@@ -192,13 +238,23 @@ export default function ReviewReceiptPage() {
                       {formatCurrency(item.item_price)}
                     </p>
 
-                    <button
-                      type="button"
-                      onClick={() => startEditing(index)}
-                      className="mt-1 text-sm font-medium text-zinc-500 hover:text-zinc-900"
-                    >
-                      Edit
-                    </button>
+                    <div className="mt-1 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => startEditing(index)}
+                        className="text-sm font-medium text-zinc-500 hover:text-zinc-900"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteItem(index)}
+                        className="text-sm font-medium text-red-500 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -206,13 +262,103 @@ export default function ReviewReceiptPage() {
           ))}
         </div>
 
-        {/* Add Item */}
-        <button
-          type="button"
-          className="mt-4 w-full rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-4 font-medium text-zinc-600 hover:bg-zinc-100"
-        >
-          + Add Item
-        </button>
+        {/* Add Item Form */}
+        {addingItem ? (
+          <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
+            <h3 className="mb-4 font-semibold">
+              Add Item
+            </h3>
+
+            <div className="space-y-4">
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-600">
+                  Item name
+                </label>
+
+                <input
+                  type="text"
+                  value={newItem.item_name}
+                  onChange={(event) =>
+                    setNewItem({
+                      ...newItem,
+                      item_name: event.target.value,
+                    })
+                  }
+                  className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                  placeholder="Example: Garlic Naan"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-600">
+                  Quantity
+                </label>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={newItem.item_quantity}
+                  onChange={(event) =>
+                    setNewItem({
+                      ...newItem,
+                      item_quantity: Number(event.target.value),
+                    })
+                  }
+                  className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-600">
+                  Price
+                </label>
+
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={newItem.item_price}
+                  onChange={(event) =>
+                    setNewItem({
+                      ...newItem,
+                      item_price: Number(event.target.value),
+                    })
+                  }
+                  className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="flex-1 rounded-xl bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800"
+                >
+                  Add
+                </button>
+
+                <button
+                  type="button"
+                  onClick={cancelAddingItem}
+                  className="flex-1 rounded-xl border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100"
+                >
+                  Cancel
+                </button>
+              </div>
+
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startAddingItem}
+            className="mt-4 w-full rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-4 font-medium text-zinc-600 hover:bg-zinc-100"
+          >
+            + Add Item
+          </button>
+        )}
 
         {/* Total */}
         <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
