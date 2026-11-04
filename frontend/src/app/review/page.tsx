@@ -19,6 +19,10 @@ export default function ReviewReceiptPage() {
     item_price: 0,
   });
 
+  const calculatedTotal = items.reduce((total, item) => {
+  return total + item.item_price * item.item_quantity;
+  }, 0);
+
   const [addingItem, setAddingItem] = useState(false);
 
   const [newItem, setNewItem] = useState<ReceiptLineItem>({
@@ -368,7 +372,7 @@ export default function ReviewReceiptPage() {
             </span>
 
             <span className="text-2xl font-bold">
-              {formatCurrency(receipt.total_amount)}
+              {formatCurrency(calculatedTotal)}
             </span>
           </div>
         </div>
