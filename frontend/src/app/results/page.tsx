@@ -1,63 +1,35 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { mockReceipt } from "@/data/mockReceipt";
+import { useRouter } from "next/navigation";
+
+import { useSplit } from "@/context/SplitContext";
+
+type PersonResultItem = {
+  name: string;
+  amount: number;
+};
 
 type PersonResult = {
+  id: number;
   name: string;
-  items: {
-    name: string;
-    amount: number;
-  }[];
+  items: PersonResultItem[];
 };
 
 export default function ResultsPage() {
-  const receipt = mockReceipt.receipt;
+  const router = useRouter();
+
+  const {
+    receipt,
+    items,
+    people,
+    assignments,
+    resetSplit,
+  } = useSplit();
 
   const GBP_TO_USD_RATE = 1.35;
 
   const [shareStatus, setShareStatus] = useState("");
-
-  // Temporary sample results.
-  // Later this will come from the real Assign Items screen.
-  const results: PersonResult[] = [
-    {
-      name: "Imran",
-      items: [
-        {
-          name: "Garlic Naan (1/2)",
-          amount: 4.2,
-        },
-        {
-          name: "Mango Lassi",
-          amount: 5.5,
-        },
-      ],
-    },
-    {
-      name: "Zach",
-      items: [
-        {
-          name: "Chicken Ruby",
-          amount: 15.5,
-        },
-        {
-          name: "Garlic Naan (1/2)",
-          amount: 4.2,
-        },
-      ],
-    },
-    {
-      name: "Niyoo",
-      items: [
-        {
-          name: "House Chai",
-          amount: 3.2,
-        },
-      ],
-    },
-  ];
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
@@ -73,6 +45,46 @@ export default function ResultsPage() {
     }).format(amount);
   }
 
+  /*
+   * Build each person's result using the real assignments
+   * created on the Assign Items page.
+   */
+  const results: PersonResult[] = people.map((person) => {
+    const personItems: PersonResultItem[] = [];
+
+    items.forEach((item, itemIndex) => {
+      const assignedPeople = assignments[itemIndex] ?? [];
+
+      if (!assignedPeople.includes(person.id)) {
+        return;
+      }
+
+      const itemTotal =
+        item.item_price * item.item_quantity;
+
+      const amountPerPerson =
+        assignedPeople.length > 0
+          ? itemTotal / assignedPeople.length
+          : 0;
+
+      const itemName =
+        assignedPeople.length > 1
+          ? `${item.item_name} (1/${assignedPeople.length})`
+          : item.item_name;
+
+      personItems.push({
+        name: itemName,
+        amount: amountPerPerson,
+      });
+    });
+
+    return {
+      id: person.id,
+      name: person.name,
+      items: personItems,
+    };
+  });
+
   function getPersonTotal(person: PersonResult) {
     return person.items.reduce(
       (total, item) => total + item.amount,
@@ -81,7 +93,8 @@ export default function ResultsPage() {
   }
 
   const calculatedTotal = results.reduce(
-    (total, person) => total + getPersonTotal(person),
+    (total, person) =>
+      total + getPersonTotal(person),
     0
   );
 
@@ -89,19 +102,27 @@ export default function ResultsPage() {
     const peopleBreakdown = results
       .map((person) => {
         const total = getPersonTotal(person);
-        const usdTotal = total * GBP_TO_USD_RATE;
+        const usdTotal =
+          total * GBP_TO_USD_RATE;
 
-        const items = person.items
-          .map(
-            (item) =>
-              `  • ${item.name}: ${formatCurrency(item.amount)}`
-          )
-          .join("\n");
+        const itemText =
+          person.items.length > 0
+            ? person.items
+                .map(
+                  (item) =>
+                    `  • ${item.name}: ${formatCurrency(
+                      item.amount
+                    )}`
+                )
+                .join("\n")
+            : "  • No items";
 
         return `${person.name}
-${items}
+${itemText}
 
-Total: ${formatCurrency(total)} (${formatUSD(usdTotal)})`;
+Total: ${formatCurrency(total)} (${formatUSD(
+          usdTotal
+        )})`;
       })
       .join("\n\n");
 
@@ -110,11 +131,15 @@ Total: ${formatCurrency(total)} (${formatUSD(usdTotal)})`;
 ${receipt.merchant_name}
 
 Total Bill: ${formatCurrency(calculatedTotal)}
-USD: ${formatUSD(calculatedTotal * GBP_TO_USD_RATE)}
+USD: ${formatUSD(
+      calculatedTotal * GBP_TO_USD_RATE
+    )}
 
 ${peopleBreakdown}
 
-Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
+Exchange Rate: £1 = ${formatUSD(
+      GBP_TO_USD_RATE
+    )}`;
   }
 
   async function shareBreakdown() {
@@ -129,7 +154,10 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
 
         setShareStatus("Shared!");
       } else {
-        await navigator.clipboard.writeText(shareText);
+        await navigator.clipboard.writeText(
+          shareText
+        );
+
         setShareStatus("Copied!");
       }
     } catch (error) {
@@ -141,7 +169,10 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
       }
 
       try {
-        await navigator.clipboard.writeText(shareText);
+        await navigator.clipboard.writeText(
+          shareText
+        );
+
         setShareStatus("Copied!");
       } catch {
         setShareStatus("Could not share.");
@@ -151,6 +182,11 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
     setTimeout(() => {
       setShareStatus("");
     }, 2000);
+  }
+
+  function startNewSplit() {
+    resetSplit();
+    router.push("/");
   }
 
   return (
@@ -194,13 +230,17 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
               <p className="mt-1 text-sm text-zinc-300">
                 ≈{" "}
                 {formatUSD(
-                  calculatedTotal * GBP_TO_USD_RATE
+                  calculatedTotal *
+                    GBP_TO_USD_RATE
                 )}
               </p>
             </div>
 
             <p className="text-sm text-zinc-300">
-              {results.length} people
+              {results.length}{" "}
+              {results.length === 1
+                ? "person"
+                : "people"}
             </p>
           </div>
 
@@ -218,18 +258,23 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
         {/* Individual Results */}
         <div className="space-y-4">
           {results.map((person) => {
-            const total = getPersonTotal(person);
-            const usdTotal = total * GBP_TO_USD_RATE;
+            const total =
+              getPersonTotal(person);
+
+            const usdTotal =
+              total * GBP_TO_USD_RATE;
 
             return (
               <div
-                key={person.name}
+                key={person.id}
                 className="rounded-2xl bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 font-semibold text-white">
-                      {person.name.charAt(0)}
+                      {person.name
+                        .charAt(0)
+                        .toUpperCase()}
                     </div>
 
                     <h2 className="text-lg font-semibold">
@@ -249,44 +294,56 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
                 </div>
 
                 <div className="mt-4 border-t border-zinc-100 pt-4">
-                  <div className="space-y-2">
-                    {person.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between text-sm"
-                      >
-                        <span className="text-zinc-600">
-                          {item.name}
-                        </span>
+                  {person.items.length > 0 ? (
+                    <div className="space-y-2">
+                      {person.items.map(
+                        (item, index) => (
+                          <div
+                            key={index}
+                            className="flex justify-between gap-4 text-sm"
+                          >
+                            <span className="text-zinc-600">
+                              {item.name}
+                            </span>
 
-                        <span className="font-medium">
-                          {formatCurrency(item.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                            <span className="font-medium">
+                              {formatCurrency(
+                                item.amount
+                              )}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-zinc-400">
+                      No items assigned.
+                    </p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Share Breakdown */}
+        {/* Share */}
         <button
           type="button"
           onClick={shareBreakdown}
           className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white hover:bg-zinc-800"
         >
-          {shareStatus || "Share Breakdown"}
+          {shareStatus ||
+            "Share Breakdown"}
         </button>
 
         {/* Start New Split */}
-        <Link
-          href="/"
-          className="mt-3 block w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 text-center font-semibold hover:bg-zinc-100"
+        <button
+          type="button"
+          onClick={startNewSplit}
+          className="mt-3 w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 font-semibold hover:bg-zinc-100"
         >
           Start New Split
-        </Link>
+        </button>
       </div>
     </main>
   );
