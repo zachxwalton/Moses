@@ -1,16 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { mockReceipt } from "@/data/mockReceipt";
-import type { ReceiptLineItem } from "@/types/receipt";
 import Link from "next/link";
+import { useState } from "react";
+
+import { useSplit } from "@/context/SplitContext";
+import type { ReceiptLineItem } from "@/types/receipt";
 
 export default function ReviewReceiptPage() {
-  const receipt = mockReceipt.receipt;
-
-  const [items, setItems] = useState<ReceiptLineItem[]>(
-    receipt.line_items
-  );
+  const { receipt, items, setItems } = useSplit();
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
@@ -20,10 +17,6 @@ export default function ReviewReceiptPage() {
     item_price: 0,
   });
 
-  const calculatedTotal = items.reduce((total, item) => {
-  return total + item.item_price * item.item_quantity;
-  }, 0);
-
   const [addingItem, setAddingItem] = useState(false);
 
   const [newItem, setNewItem] = useState<ReceiptLineItem>({
@@ -31,6 +24,10 @@ export default function ReviewReceiptPage() {
     item_quantity: 1,
     item_price: 0,
   });
+
+  const calculatedTotal = items.reduce((total, item) => {
+    return total + item.item_price * item.item_quantity;
+  }, 0);
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
@@ -53,6 +50,7 @@ export default function ReviewReceiptPage() {
     if (editingIndex === null) return;
 
     const updatedItems = [...items];
+
     updatedItems[editingIndex] = editItem;
 
     setItems(updatedItems);
@@ -60,7 +58,10 @@ export default function ReviewReceiptPage() {
   }
 
   function deleteItem(index: number) {
-    const updatedItems = items.filter((_, itemIndex) => itemIndex !== index);
+    const updatedItems = items.filter(
+      (_, itemIndex) => itemIndex !== index
+    );
+
     setItems(updatedItems);
 
     if (editingIndex === index) {
@@ -87,6 +88,7 @@ export default function ReviewReceiptPage() {
     if (!newItem.item_name.trim()) return;
 
     setItems([...items, newItem]);
+
     setAddingItem(false);
 
     setNewItem({
@@ -99,7 +101,6 @@ export default function ReviewReceiptPage() {
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
-
         {/* Header */}
         <div className="mb-8">
           <p className="text-sm font-medium text-zinc-500">
@@ -145,7 +146,6 @@ export default function ReviewReceiptPage() {
             >
               {editingIndex === index ? (
                 <div className="space-y-4">
-
                   {/* Item Name */}
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-600">
@@ -227,7 +227,6 @@ export default function ReviewReceiptPage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-4">
-
                   <div>
                     <p className="font-medium">
                       {item.item_name}
@@ -240,7 +239,9 @@ export default function ReviewReceiptPage() {
 
                   <div className="text-right">
                     <p className="font-semibold">
-                      {formatCurrency(item.item_price)}
+                      {formatCurrency(
+                        item.item_price * item.item_quantity
+                      )}
                     </p>
 
                     <div className="mt-1 flex gap-3">
@@ -267,7 +268,7 @@ export default function ReviewReceiptPage() {
           ))}
         </div>
 
-        {/* Add Item Form */}
+        {/* Add Item */}
         {addingItem ? (
           <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
             <h3 className="mb-4 font-semibold">
@@ -275,7 +276,6 @@ export default function ReviewReceiptPage() {
             </h3>
 
             <div className="space-y-4">
-
               <div>
                 <label className="mb-1 block text-sm font-medium text-zinc-600">
                   Item name
@@ -352,7 +352,6 @@ export default function ReviewReceiptPage() {
                   Cancel
                 </button>
               </div>
-
             </div>
           </div>
         ) : (
@@ -379,14 +378,12 @@ export default function ReviewReceiptPage() {
         </div>
 
         {/* Continue */}
-        
         <Link
-            href="/people"
-            className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
-            >
-            Looks Good →
+          href="/people"
+          className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+        >
+          Looks Good →
         </Link>
-
       </div>
     </main>
   );
