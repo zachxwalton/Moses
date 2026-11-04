@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { mockReceipt } from "@/data/mockReceipt";
 import type { ReceiptLineItem } from "@/types/receipt";
+import Link from "next/link";
 
 export default function ReviewReceiptPage() {
   const receipt = mockReceipt.receipt;
@@ -378,12 +379,13 @@ export default function ReviewReceiptPage() {
         </div>
 
         {/* Continue */}
-        <button
-          type="button"
-          className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white hover:bg-zinc-800"
-        >
-          Looks Good →
-        </button>
+        
+        <Link
+            href="/people"
+            className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+            >
+            Looks Good →
+        </Link>
 
       </div>
     </main>
