@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { mockReceipt } from "@/data/mockReceipt";
 
@@ -129,11 +130,9 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
         setShareStatus("Shared!");
       } else {
         await navigator.clipboard.writeText(shareText);
-
         setShareStatus("Copied!");
       }
     } catch (error) {
-      // Ignore the error if the user simply closes the share menu.
       if (
         error instanceof DOMException &&
         error.name === "AbortError"
@@ -157,7 +156,6 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
-
         {/* Header */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-black text-2xl text-white">
@@ -221,8 +219,7 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
         <div className="space-y-4">
           {results.map((person) => {
             const total = getPersonTotal(person);
-            const usdTotal =
-              total * GBP_TO_USD_RATE;
+            const usdTotal = total * GBP_TO_USD_RATE;
 
             return (
               <div
@@ -253,24 +250,20 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
 
                 <div className="mt-4 border-t border-zinc-100 pt-4">
                   <div className="space-y-2">
-                    {person.items.map(
-                      (item, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between text-sm"
-                        >
-                          <span className="text-zinc-600">
-                            {item.name}
-                          </span>
+                    {person.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between text-sm"
+                      >
+                        <span className="text-zinc-600">
+                          {item.name}
+                        </span>
 
-                          <span className="font-medium">
-                            {formatCurrency(
-                              item.amount
-                            )}
-                          </span>
-                        </div>
-                      )
-                    )}
+                        <span className="font-medium">
+                          {formatCurrency(item.amount)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -278,7 +271,7 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
           })}
         </div>
 
-        {/* Share */}
+        {/* Share Breakdown */}
         <button
           type="button"
           onClick={shareBreakdown}
@@ -288,13 +281,12 @@ Exchange Rate: £1 = ${formatUSD(GBP_TO_USD_RATE)}`;
         </button>
 
         {/* Start New Split */}
-        <button
-          type="button"
-          className="mt-3 w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 font-semibold hover:bg-zinc-100"
+        <Link
+          href="/"
+          className="mt-3 block w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 text-center font-semibold hover:bg-zinc-100"
         >
           Start New Split
-        </button>
-
+        </Link>
       </div>
     </main>
   );
