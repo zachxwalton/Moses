@@ -1,17 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 
-type Person = {
-  id: number;
-  name: string;
-};
+import { useSplit } from "@/context/SplitContext";
 
 export default function PeoplePage() {
-  const [people, setPeople] = useState<Person[]>([
-    { id: 1, name: "Imran" },
-  ]);
+  const { people, setPeople } = useSplit();
 
   const [name, setName] = useState("");
 
@@ -32,7 +27,9 @@ export default function PeoplePage() {
   }
 
   function removePerson(id: number) {
-    setPeople(people.filter((person) => person.id !== id));
+    setPeople(
+      people.filter((person) => person.id !== id)
+    );
   }
 
   return (
@@ -53,7 +50,7 @@ export default function PeoplePage() {
           </p>
         </div>
 
-        {/* People */}
+        {/* People List */}
         <div className="space-y-3">
           {people.map((person) => (
             <div
@@ -91,7 +88,9 @@ export default function PeoplePage() {
             <input
               type="text"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) =>
+                setName(event.target.value)
+              }
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   addPerson();
@@ -119,21 +118,21 @@ export default function PeoplePage() {
 
         {/* Continue */}
         {people.length > 0 ? (
-  <Link
-    href="/assign"
-    className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
-  >
-    Start Splitting →
-  </Link>
-) : (
-  <button
-    type="button"
-    disabled
-    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
-  >
-    Start Splitting →
-  </button>
-)}
+          <Link
+            href="/assign"
+            className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+          >
+            Start Splitting →
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
+          >
+            Start Splitting →
+          </button>
+        )}
       </div>
     </main>
   );
