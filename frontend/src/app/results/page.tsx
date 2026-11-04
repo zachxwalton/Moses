@@ -13,6 +13,8 @@ type PersonResult = {
 export default function ResultsPage() {
   const receipt = mockReceipt.receipt;
 
+  const GBP_TO_USD_RATE = 1.35;
+
   // Temporary sample results.
   // Later this will come from the real Assign Items screen.
   const results: PersonResult[] = [
@@ -57,6 +59,13 @@ export default function ResultsPage() {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: receipt.transaction_currency,
+    }).format(amount);
+  }
+
+  function formatUSD(amount: number) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
     }).format(amount);
   }
 
@@ -110,10 +119,24 @@ export default function ResultsPage() {
               <p className="text-3xl font-bold">
                 {formatCurrency(calculatedTotal)}
               </p>
+
+              <p className="mt-1 text-sm text-zinc-300">
+                ≈ {formatUSD(calculatedTotal * GBP_TO_USD_RATE)}
+              </p>
             </div>
 
             <p className="text-sm text-zinc-300">
               {results.length} people
+            </p>
+          </div>
+
+          <div className="mt-4 border-t border-zinc-700 pt-4">
+            <p className="text-sm text-zinc-300">
+              Exchange rate
+            </p>
+
+            <p className="mt-1 text-sm font-medium">
+              £1 = {formatUSD(GBP_TO_USD_RATE)}
             </p>
           </div>
         </div>
@@ -122,6 +145,7 @@ export default function ResultsPage() {
         <div className="space-y-4">
           {results.map((person) => {
             const total = getPersonTotal(person);
+            const usdTotal = total * GBP_TO_USD_RATE;
 
             return (
               <div
@@ -139,9 +163,15 @@ export default function ResultsPage() {
                     </h2>
                   </div>
 
-                  <p className="text-xl font-bold">
-                    {formatCurrency(total)}
-                  </p>
+                  <div className="text-right">
+                    <p className="text-xl font-bold">
+                      {formatCurrency(total)}
+                    </p>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                      ≈ {formatUSD(usdTotal)}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-4 border-t border-zinc-100 pt-4">
@@ -175,6 +205,7 @@ export default function ResultsPage() {
           Share Breakdown
         </button>
 
+        {/* Start New Split */}
         <button
           type="button"
           className="mt-3 w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 font-semibold hover:bg-zinc-100"
