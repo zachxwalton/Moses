@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 type Person = {
   id: number;
@@ -117,13 +118,22 @@ export default function PeoplePage() {
         </p>
 
         {/* Continue */}
-        <button
-          type="button"
-          disabled={people.length === 0}
-          className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Start Splitting →
-        </button>
+        {people.length > 0 ? (
+  <Link
+    href="/assign"
+    className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+  >
+    Start Splitting →
+  </Link>
+) : (
+  <button
+    type="button"
+    disabled
+    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
+  >
+    Start Splitting →
+  </button>
+)}
       </div>
     </main>
   );
