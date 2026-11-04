@@ -5,17 +5,44 @@ import { mockReceipt } from "@/data/mockReceipt";
 import type { ReceiptLineItem } from "@/types/receipt";
 
 export default function ReviewReceiptPage() {
+  const receipt = mockReceipt.receipt;
+
   const [items, setItems] = useState<ReceiptLineItem[]>(
-    mockReceipt.receipt.line_items
+    receipt.line_items
   );
 
-  const receipt = mockReceipt.receipt;
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const [editItem, setEditItem] = useState<ReceiptLineItem>({
+    item_name: "",
+    item_quantity: 1,
+    item_price: 0,
+  });
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: receipt.transaction_currency,
     }).format(amount);
+  }
+
+  function startEditing(index: number) {
+    setEditingIndex(index);
+    setEditItem({ ...items[index] });
+  }
+
+  function cancelEditing() {
+    setEditingIndex(null);
+  }
+
+  function saveEdit() {
+    if (editingIndex === null) return;
+
+    const updatedItems = [...items];
+    updatedItems[editingIndex] = editItem;
+
+    setItems(updatedItems);
+    setEditingIndex(null);
   }
 
   return (
@@ -65,30 +92,116 @@ export default function ReviewReceiptPage() {
               key={index}
               className="rounded-2xl bg-white p-4 shadow-sm"
             >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">
-                    {item.item_name}
-                  </p>
+              {editingIndex === index ? (
+                <div className="space-y-4">
 
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Quantity: {item.item_quantity}
-                  </p>
+                  {/* Item Name */}
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-600">
+                      Item name
+                    </label>
+
+                    <input
+                      type="text"
+                      value={editItem.item_name}
+                      onChange={(event) =>
+                        setEditItem({
+                          ...editItem,
+                          item_name: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                    />
+                  </div>
+
+                  {/* Quantity */}
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-600">
+                      Quantity
+                    </label>
+
+                    <input
+                      type="number"
+                      min="1"
+                      value={editItem.item_quantity}
+                      onChange={(event) =>
+                        setEditItem({
+                          ...editItem,
+                          item_quantity: Number(event.target.value),
+                        })
+                      }
+                      className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-zinc-600">
+                      Price
+                    </label>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editItem.item_price}
+                      onChange={(event) =>
+                        setEditItem({
+                          ...editItem,
+                          item_price: Number(event.target.value),
+                        })
+                      }
+                      className="w-full rounded-xl border border-zinc-300 px-3 py-2 outline-none focus:border-black"
+                    />
+                  </div>
+
+                  {/* Edit Buttons */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={saveEdit}
+                      className="flex-1 rounded-xl bg-black px-4 py-2 font-medium text-white hover:bg-zinc-800"
+                    >
+                      Save
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={cancelEditing}
+                      className="flex-1 rounded-xl border border-zinc-300 px-4 py-2 font-medium hover:bg-zinc-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
 
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {formatCurrency(item.item_price)}
-                  </p>
+                  <div>
+                    <p className="font-medium">
+                      {item.item_name}
+                    </p>
 
-                  <button
-                    type="button"
-                    className="mt-1 text-sm font-medium text-zinc-500 hover:text-zinc-900"
-                  >
-                    Edit
-                  </button>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      Quantity: {item.item_quantity}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-semibold">
+                      {formatCurrency(item.item_price)}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => startEditing(index)}
+                      className="mt-1 text-sm font-medium text-zinc-500 hover:text-zinc-900"
+                    >
+                      Edit
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
