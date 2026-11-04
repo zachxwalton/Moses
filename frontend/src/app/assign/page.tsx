@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { mockReceipt } from "@/data/mockReceipt";
+import Link from "next/link";
 
 type Person = {
   id: number;
@@ -199,13 +200,22 @@ export default function AssignItemsPage() {
         </div>
 
         {/* Continue */}
-        <button
-          type="button"
-          disabled={!allItemsAssigned}
-          className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          View Split →
-        </button>
+        {allItemsAssigned ? (
+  <Link
+    href="/results"
+    className="mt-6 block w-full rounded-2xl bg-black px-5 py-4 text-center font-semibold text-white hover:bg-zinc-800"
+  >
+    View Split →
+  </Link>
+) : (
+  <button
+    type="button"
+    disabled
+    className="mt-6 w-full rounded-2xl bg-black px-5 py-4 font-semibold text-white opacity-40"
+  >
+    View Split →
+  </button>
+)}
 
         {!allItemsAssigned && (
           <p className="mt-3 text-center text-sm text-zinc-500">
