@@ -50,7 +50,6 @@ export default function ReviewReceiptPage() {
     if (editingIndex === null) return;
 
     const updatedItems = [...items];
-
     updatedItems[editingIndex] = editItem;
 
     setItems(updatedItems);
@@ -103,6 +102,13 @@ export default function ReviewReceiptPage() {
       <div className="mx-auto max-w-lg">
         {/* Header */}
         <div className="mb-8">
+          <Link
+            href="/"
+            className="mb-5 inline-flex items-center text-sm font-medium text-zinc-500 hover:text-black"
+          >
+            ← Back
+          </Link>
+
           <p className="text-sm font-medium text-zinc-500">
             Moses
           </p>
@@ -146,7 +152,6 @@ export default function ReviewReceiptPage() {
             >
               {editingIndex === index ? (
                 <div className="space-y-4">
-                  {/* Item Name */}
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-600">
                       Item name
@@ -165,7 +170,6 @@ export default function ReviewReceiptPage() {
                     />
                   </div>
 
-                  {/* Quantity */}
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-600">
                       Quantity
@@ -185,7 +189,6 @@ export default function ReviewReceiptPage() {
                     />
                   </div>
 
-                  {/* Price */}
                   <div>
                     <label className="mb-1 block text-sm font-medium text-zinc-600">
                       Price
@@ -206,7 +209,6 @@ export default function ReviewReceiptPage() {
                     />
                   </div>
 
-                  {/* Edit Buttons */}
                   <div className="flex gap-2">
                     <button
                       type="button"
