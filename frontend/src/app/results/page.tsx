@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import { useSplit } from "@/context/SplitContext";
 
 const GBP_TO_USD_RATE = 1.35;
@@ -20,6 +19,31 @@ export default function ResultsPage() {
   } = useSplit();
 
   const [shareStatus, setShareStatus] = useState("");
+  
+  const allItemsAssigned =
+  items.length > 0 &&
+  items.every(
+    (_, index) => (assignments[index] || []).length > 0
+  );
+
+useEffect(() => {
+  if (people.length === 0) {
+    router.replace("/people");
+    return;
+  }
+
+  if (!allItemsAssigned) {
+    router.replace("/assign");
+  }
+}, [allItemsAssigned, people.length, router]);
+
+if (people.length === 0 || !allItemsAssigned) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-zinc-50">
+      <p className="text-zinc-500">Redirecting...</p>
+    </main>
+  );
+}
 
   function formatGBP(amount: number) {
     return new Intl.NumberFormat("en-GB", {
