@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import { useSplit } from "@/context/SplitContext";
 
 export default function AssignPage() {
+  const router = useRouter();
   const {
     receipt,
     items,
@@ -12,6 +15,20 @@ export default function AssignPage() {
     assignments,
     setAssignments,
   } = useSplit();
+
+  useEffect(() => {
+  if (people.length === 0) {
+    router.replace("/people");
+  }
+}, [people.length, router]);
+
+if (people.length === 0) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-zinc-50">
+      <p className="text-zinc-500">Redirecting...</p>
+    </main>
+  );
+}
 
   function togglePerson(itemIndex: number, personId: number) {
     const currentAssignments = assignments[itemIndex] || [];
