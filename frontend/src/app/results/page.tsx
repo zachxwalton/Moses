@@ -6,8 +6,6 @@ import { useEffect, useState } from "react";
 
 import { useSplit } from "@/context/SplitContext";
 
-const GBP_TO_USD_RATE = 1.35;
-
 export default function ResultsPage() {
   const router = useRouter();
 
@@ -20,6 +18,12 @@ export default function ResultsPage() {
   } = useSplit();
 
   const [shareStatus, setShareStatus] = useState("");
+  const [usdRate, setUsdRate] = useState<number | null>(null);
+  const [rateDate, setRateDate] = useState("");
+  const [rateError, setRateError] = useState(false);
+
+  const receiptCurrency =
+    receipt.transaction_currency.toUpperCase();
 
   const allItemsAssigned =
     items.length > 0 &&
@@ -33,10 +37,52 @@ export default function ResultsPage() {
     }
   }, [allItemsAssigned, router]);
 
+  // Fetch real exchange rate
+  useEffect(() => {
+    let cancelled = false;
+
+    async function getExchangeRate() {
+      setRateError(false);
+
+      if (receiptCurrency === "USD") {
+        setUsdRate(1);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `https://api.frankfurter.dev/v2/rate/${receiptCurrency.toLowerCase()}/usd`
+        );
+
+        if (!response.ok) {
+          throw new Error("Could not fetch exchange rate");
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setUsdRate(data.rate);
+          setRateDate(data.date || "");
+        }
+      } catch {
+        if (!cancelled) {
+          setUsdRate(null);
+          setRateError(true);
+        }
+      }
+    }
+
+    getExchangeRate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [receiptCurrency]);
+
   function formatReceiptCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: receipt.transaction_currency,
+      currency: receiptCurrency,
     }).format(amount);
   }
 
@@ -115,15 +161,35 @@ export default function ResultsPage() {
     0
   );
 
+  function getUsdText(amount: number) {
+    if (receiptCurrency === "USD") {
+      return formatUSD(amount);
+    }
+
+    if (usdRate === null) {
+      return rateError
+        ? "USD unavailable"
+        : "Converting...";
+    }
+
+    return formatUSD(amount * usdRate);
+  }
+
   function createShareText() {
     let text = `Moses Split — ${receipt.merchant_name}\n\n`;
 
     results.forEach((person) => {
       text += `${person.name}: ${formatReceiptCurrency(
         person.finalTotal
-      )} (${formatUSD(
-        person.finalTotal * GBP_TO_USD_RATE
-      )})\n`;
+      )}`;
+
+      if (usdRate !== null) {
+        text += ` (${formatUSD(
+          person.finalTotal * usdRate
+        )})`;
+      }
+
+      text += "\n";
 
       person.items.forEach((item) => {
         text += `  • ${item.name}: ${formatReceiptCurrency(
@@ -148,11 +214,13 @@ export default function ResultsPage() {
 
     text += `Total: ${formatReceiptCurrency(
       finalReceiptTotal
-    )}\n`;
-
-    text += `Exchange rate: £1 = $${GBP_TO_USD_RATE.toFixed(
-      2
     )}`;
+
+    if (usdRate !== null) {
+      text += ` (${formatUSD(
+        finalReceiptTotal * usdRate
+      )})`;
+    }
 
     return text;
   }
@@ -199,7 +267,7 @@ export default function ResultsPage() {
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
-        {/* Back Button */}
+        {/* Back */}
         <Link
           href="/assign"
           className="mb-5 inline-flex items-center text-sm font-medium text-zinc-500 hover:text-black"
@@ -222,7 +290,7 @@ export default function ResultsPage() {
           </p>
         </div>
 
-        {/* Receipt Summary */}
+        {/* Receipt */}
         <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
           <p className="text-sm text-zinc-500">
             Receipt
@@ -272,7 +340,7 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* Person Results */}
+        {/* People */}
         <div className="space-y-4">
           {results.map((person) => (
             <div
@@ -301,10 +369,7 @@ export default function ResultsPage() {
                   </p>
 
                   <p className="mt-1 text-sm text-zinc-500">
-                    {formatUSD(
-                      person.finalTotal *
-                        GBP_TO_USD_RATE
-                    )}
+                    {getUsdText(person.finalTotal)}
                   </p>
                 </div>
               </div>
@@ -352,7 +417,7 @@ export default function ResultsPage() {
           ))}
         </div>
 
-        {/* Final Total */}
+        {/* Total */}
         <div className="mt-6 rounded-2xl bg-black p-5 text-white">
           <div className="flex items-center justify-between">
             <span className="text-zinc-300">
@@ -367,10 +432,7 @@ export default function ResultsPage() {
               </p>
 
               <p className="mt-1 text-sm text-zinc-400">
-                {formatUSD(
-                  finalReceiptTotal *
-                    GBP_TO_USD_RATE
-                )}
+                {getUsdText(finalReceiptTotal)}
               </p>
             </div>
           </div>
@@ -382,13 +444,22 @@ export default function ResultsPage() {
             </p>
           )}
 
-          <p className="mt-2 text-xs text-zinc-400">
-            Demo exchange rate: £1 = $
-            {GBP_TO_USD_RATE.toFixed(2)}
-          </p>
+          {usdRate !== null &&
+            receiptCurrency !== "USD" && (
+              <p className="mt-2 text-xs text-zinc-400">
+                1 {receiptCurrency} = $
+                {usdRate.toFixed(4)} USD
+                {rateDate ? ` • ${rateDate}` : ""}
+              </p>
+            )}
+
+          {rateError && (
+            <p className="mt-2 text-xs text-red-300">
+              Currency conversion is temporarily unavailable.
+            </p>
+          )}
         </div>
 
-        {/* Share */}
         <button
           type="button"
           onClick={shareBreakdown}
@@ -397,7 +468,6 @@ export default function ResultsPage() {
           {shareStatus || "Share Breakdown"}
         </button>
 
-        {/* New Split */}
         <button
           type="button"
           onClick={startNewSplit}
