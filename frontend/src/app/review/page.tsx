@@ -29,6 +29,8 @@ export default function ReviewReceiptPage() {
     return total + item.item_price * item.item_quantity;
   }, 0);
 
+  const adjustment = receipt.total_amount - calculatedTotal;
+
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
@@ -366,16 +368,45 @@ export default function ReviewReceiptPage() {
           </button>
         )}
 
-        {/* Total */}
+        {/* Totals */}
         <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-zinc-500">
-              Total
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-500">
+                Items subtotal
+              </span>
 
-            <span className="text-2xl font-bold">
-              {formatCurrency(calculatedTotal)}
-            </span>
+              <span className="font-semibold">
+                {formatCurrency(calculatedTotal)}
+              </span>
+            </div>
+
+            {Math.abs(adjustment) > 0.009 && (
+              <div className="flex items-center justify-between">
+                <span className="text-zinc-500">
+                  {adjustment >= 0
+                    ? "Fees / service charge"
+                    : "Discount / adjustment"}
+                </span>
+
+                <span className="font-semibold">
+                  {adjustment >= 0 ? "+" : ""}
+                  {formatCurrency(adjustment)}
+                </span>
+              </div>
+            )}
+
+            <div className="border-t border-zinc-200 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">
+                  Receipt total
+                </span>
+
+                <span className="text-2xl font-bold">
+                  {formatCurrency(receipt.total_amount)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -4,7 +4,7 @@ export const mockReceipt: ScanResponse = {
   receipt: {
     merchant_name: "Dishoom",
     transaction_currency: "GBP",
-    total_amount: 48.6,
+    total_amount: 53.46,
     line_items: [
       {
         item_name: "Chicken Ruby",

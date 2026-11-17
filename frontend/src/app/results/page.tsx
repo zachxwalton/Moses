@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
 import { useSplit } from "@/context/SplitContext";
 
 const GBP_TO_USD_RATE = 1.35;
@@ -19,36 +20,23 @@ export default function ResultsPage() {
   } = useSplit();
 
   const [shareStatus, setShareStatus] = useState("");
-  
+
   const allItemsAssigned =
-  items.length > 0 &&
-  items.every(
-    (_, index) => (assignments[index] || []).length > 0
-  );
+    items.length > 0 &&
+    items.every(
+      (_, index) => (assignments[index] || []).length > 0
+    );
 
-useEffect(() => {
-  if (people.length === 0) {
-    router.replace("/people");
-    return;
-  }
+  useEffect(() => {
+    if (!allItemsAssigned) {
+      router.replace("/assign");
+    }
+  }, [allItemsAssigned, router]);
 
-  if (!allItemsAssigned) {
-    router.replace("/assign");
-  }
-}, [allItemsAssigned, people.length, router]);
-
-if (people.length === 0 || !allItemsAssigned) {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50">
-      <p className="text-zinc-500">Redirecting...</p>
-    </main>
-  );
-}
-
-  function formatGBP(amount: number) {
+  function formatReceiptCurrency(amount: number) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
-      currency: "GBP",
+      currency: receipt.transaction_currency,
     }).format(amount);
   }
 
@@ -59,6 +47,15 @@ if (people.length === 0 || !allItemsAssigned) {
     }).format(amount);
   }
 
+  const itemsSubtotal = items.reduce(
+    (sum, item) =>
+      sum + item.item_price * item.item_quantity,
+    0
+  );
+
+  const adjustment =
+    receipt.total_amount - itemsSubtotal;
+
   const results = people.map((person) => {
     const personItems: {
       name: string;
@@ -66,7 +63,8 @@ if (people.length === 0 || !allItemsAssigned) {
     }[] = [];
 
     items.forEach((item, itemIndex) => {
-      const assignedPeople = assignments[itemIndex] || [];
+      const assignedPeople =
+        assignments[itemIndex] || [];
 
       if (!assignedPeople.includes(person.id)) {
         return;
@@ -87,20 +85,33 @@ if (people.length === 0 || !allItemsAssigned) {
       });
     });
 
-    const total = personItems.reduce(
+    const baseTotal = personItems.reduce(
       (sum, item) => sum + item.amount,
       0
     );
 
+    const proportion =
+      itemsSubtotal > 0
+        ? baseTotal / itemsSubtotal
+        : 0;
+
+    const adjustmentShare =
+      adjustment * proportion;
+
+    const finalTotal =
+      baseTotal + adjustmentShare;
+
     return {
       ...person,
       items: personItems,
-      total,
+      baseTotal,
+      adjustmentShare,
+      finalTotal,
     };
   });
 
-  const receiptTotal = results.reduce(
-    (sum, person) => sum + person.total,
+  const finalReceiptTotal = results.reduce(
+    (sum, person) => sum + person.finalTotal,
     0
   );
 
@@ -108,19 +119,40 @@ if (people.length === 0 || !allItemsAssigned) {
     let text = `Moses Split — ${receipt.merchant_name}\n\n`;
 
     results.forEach((person) => {
-      text += `${person.name}: ${formatGBP(person.total)} (${formatUSD(
-        person.total * GBP_TO_USD_RATE
+      text += `${person.name}: ${formatReceiptCurrency(
+        person.finalTotal
+      )} (${formatUSD(
+        person.finalTotal * GBP_TO_USD_RATE
       )})\n`;
 
       person.items.forEach((item) => {
-        text += `  • ${item.name}: ${formatGBP(item.amount)}\n`;
+        text += `  • ${item.name}: ${formatReceiptCurrency(
+          item.amount
+        )}\n`;
       });
+
+      if (Math.abs(adjustment) > 0.009) {
+        text += `  • ${
+          adjustment >= 0
+            ? "Fees / service charge"
+            : "Discount / adjustment"
+        }: ${
+          person.adjustmentShare >= 0 ? "+" : ""
+        }${formatReceiptCurrency(
+          person.adjustmentShare
+        )}\n`;
+      }
 
       text += "\n";
     });
 
-    text += `Total: ${formatGBP(receiptTotal)}\n`;
-    text += `Exchange rate: £1 = $${GBP_TO_USD_RATE.toFixed(2)}`;
+    text += `Total: ${formatReceiptCurrency(
+      finalReceiptTotal
+    )}\n`;
+
+    text += `Exchange rate: £1 = $${GBP_TO_USD_RATE.toFixed(
+      2
+    )}`;
 
     return text;
   }
@@ -154,6 +186,16 @@ if (people.length === 0 || !allItemsAssigned) {
     router.push("/");
   }
 
+  if (!allItemsAssigned) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-zinc-500">
+          Redirecting...
+        </p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
@@ -180,20 +222,53 @@ if (people.length === 0 || !allItemsAssigned) {
           </p>
         </div>
 
-        {/* Merchant */}
+        {/* Receipt Summary */}
         <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
           <p className="text-sm text-zinc-500">
             Receipt
           </p>
 
-          <div className="mt-1 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              {receipt.merchant_name}
-            </h2>
+          <h2 className="mt-1 text-xl font-semibold">
+            {receipt.merchant_name}
+          </h2>
 
-            <span className="font-semibold">
-              {formatGBP(receiptTotal)}
-            </span>
+          <div className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">
+                Items subtotal
+              </span>
+
+              <span className="font-medium">
+                {formatReceiptCurrency(itemsSubtotal)}
+              </span>
+            </div>
+
+            {Math.abs(adjustment) > 0.009 && (
+              <div className="flex justify-between">
+                <span className="text-zinc-500">
+                  {adjustment >= 0
+                    ? "Fees / service charge"
+                    : "Discount / adjustment"}
+                </span>
+
+                <span className="font-medium">
+                  {adjustment >= 0 ? "+" : ""}
+                  {formatReceiptCurrency(adjustment)}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between border-t border-zinc-200 pt-2">
+              <span className="font-semibold">
+                Receipt total
+              </span>
+
+              <span className="font-semibold">
+                {formatReceiptCurrency(
+                  receipt.total_amount
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -220,46 +295,64 @@ if (people.length === 0 || !allItemsAssigned) {
 
                 <div className="text-right">
                   <p className="text-xl font-bold">
-                    {formatGBP(person.total)}
+                    {formatReceiptCurrency(
+                      person.finalTotal
+                    )}
                   </p>
 
                   <p className="mt-1 text-sm text-zinc-500">
                     {formatUSD(
-                      person.total * GBP_TO_USD_RATE
+                      person.finalTotal *
+                        GBP_TO_USD_RATE
                     )}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 border-t border-zinc-100 pt-4">
-                {person.items.length > 0 ? (
-                  <div className="space-y-2">
-                    {person.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between gap-4 text-sm"
-                      >
-                        <span className="text-zinc-600">
-                          {item.name}
-                        </span>
+                <div className="space-y-2">
+                  {person.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between gap-4 text-sm"
+                    >
+                      <span className="text-zinc-600">
+                        {item.name}
+                      </span>
 
-                        <span className="font-medium">
-                          {formatGBP(item.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500">
-                    No items assigned.
-                  </p>
-                )}
+                      <span className="font-medium">
+                        {formatReceiptCurrency(
+                          item.amount
+                        )}
+                      </span>
+                    </div>
+                  ))}
+
+                  {Math.abs(adjustment) > 0.009 && (
+                    <div className="flex items-center justify-between gap-4 border-t border-zinc-100 pt-2 text-sm">
+                      <span className="text-zinc-500">
+                        {adjustment >= 0
+                          ? "Fees / service charge"
+                          : "Discount / adjustment"}
+                      </span>
+
+                      <span className="font-medium">
+                        {person.adjustmentShare >= 0
+                          ? "+"
+                          : ""}
+                        {formatReceiptCurrency(
+                          person.adjustmentShare
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Total */}
+        {/* Final Total */}
         <div className="mt-6 rounded-2xl bg-black p-5 text-white">
           <div className="flex items-center justify-between">
             <span className="text-zinc-300">
@@ -268,18 +361,28 @@ if (people.length === 0 || !allItemsAssigned) {
 
             <div className="text-right">
               <p className="text-2xl font-bold">
-                {formatGBP(receiptTotal)}
+                {formatReceiptCurrency(
+                  finalReceiptTotal
+                )}
               </p>
 
               <p className="mt-1 text-sm text-zinc-400">
                 {formatUSD(
-                  receiptTotal * GBP_TO_USD_RATE
+                  finalReceiptTotal *
+                    GBP_TO_USD_RATE
                 )}
               </p>
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-zinc-400">
+          {Math.abs(adjustment) > 0.009 && (
+            <p className="mt-4 text-xs text-zinc-400">
+              Fees are split proportionally based on
+              each person&apos;s share of the items.
+            </p>
+          )}
+
+          <p className="mt-2 text-xs text-zinc-400">
             Demo exchange rate: £1 = $
             {GBP_TO_USD_RATE.toFixed(2)}
           </p>
