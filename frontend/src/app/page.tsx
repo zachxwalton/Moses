@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSplit } from "@/context/SplitContext";
+import AccountButton from "@/components/AccountButton";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -184,6 +185,9 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
       <div className="mx-auto max-w-lg">
+        <div className="mb-6 flex justify-end">
+            <AccountButton />
+        </div>
         {/* Brand */}
         <div className="mb-10 text-center">
           <div className="mb-4 inline-flex items-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium shadow-sm">

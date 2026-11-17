@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import PaymentDetailsCard, {
+  type PaymentProfile,
+} from "@/components/PaymentDetailsCard";
+
 import { useSplit } from "@/context/SplitContext";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ResultsPage() {
   const router = useRouter();
+  const [supabase] = useState(() => createClient());
 
   const {
     receipt,
@@ -18,9 +24,19 @@ export default function ResultsPage() {
   } = useSplit();
 
   const [shareStatus, setShareStatus] = useState("");
+
   const [usdRate, setUsdRate] = useState<number | null>(null);
   const [rateDate, setRateDate] = useState("");
   const [rateError, setRateError] = useState(false);
+
+  const [profile, setProfile] =
+    useState<PaymentProfile | null>(null);
+
+  const [profileLoading, setProfileLoading] =
+    useState(true);
+
+  const [loggedIn, setLoggedIn] =
+    useState(false);
 
   const receiptCurrency =
     receipt.transaction_currency.toUpperCase();
@@ -28,7 +44,8 @@ export default function ResultsPage() {
   const allItemsAssigned =
     items.length > 0 &&
     items.every(
-      (_, index) => (assignments[index] || []).length > 0
+      (_, index) =>
+        (assignments[index] || []).length > 0
     );
 
   useEffect(() => {
@@ -37,7 +54,40 @@ export default function ResultsPage() {
     }
   }, [allItemsAssigned, router]);
 
-  // Fetch real exchange rate
+  // Load user payment profile
+  useEffect(() => {
+    async function loadProfile() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setLoggedIn(false);
+        setProfileLoading(false);
+        return;
+      }
+
+      setLoggedIn(true);
+
+      const { data } = await supabase
+        .from("profiles")
+        .select(
+          "full_name, venmo_username, zelle_contact, preferred_payment_method"
+        )
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setProfile(data as PaymentProfile);
+      }
+
+      setProfileLoading(false);
+    }
+
+    loadProfile();
+  }, [supabase]);
+
+  // Real currency conversion
   useEffect(() => {
     let cancelled = false;
 
@@ -127,6 +177,7 @@ export default function ResultsPage() {
           assignedPeople.length > 1
             ? `${item.item_name} (1/${assignedPeople.length})`
             : item.item_name,
+
         amount: splitAmount,
       });
     });
@@ -157,7 +208,8 @@ export default function ResultsPage() {
   });
 
   const finalReceiptTotal = results.reduce(
-    (sum, person) => sum + person.finalTotal,
+    (sum, person) =>
+      sum + person.finalTotal,
     0
   );
 
@@ -176,7 +228,8 @@ export default function ResultsPage() {
   }
 
   function createShareText() {
-    let text = `Moses Split — ${receipt.merchant_name}\n\n`;
+    let text =
+      `Moses Split — ${receipt.merchant_name}\n\n`;
 
     results.forEach((person) => {
       text += `${person.name}: ${formatReceiptCurrency(
@@ -203,7 +256,9 @@ export default function ResultsPage() {
             ? "Fees / service charge"
             : "Discount / adjustment"
         }: ${
-          person.adjustmentShare >= 0 ? "+" : ""
+          person.adjustmentShare >= 0
+            ? "+"
+            : ""
         }${formatReceiptCurrency(
           person.adjustmentShare
         )}\n`;
@@ -220,6 +275,32 @@ export default function ResultsPage() {
       text += ` (${formatUSD(
         finalReceiptTotal * usdRate
       )})`;
+    }
+
+    // Add payment information
+    if (
+      profile?.venmo_username ||
+      profile?.zelle_contact
+    ) {
+      text += `\n\nPay ${
+        profile.full_name || "the receipt owner"
+      }`;
+
+      if (profile.venmo_username) {
+        text += `\nVenmo: ${profile.venmo_username}`;
+      }
+
+      if (profile.zelle_contact) {
+        text += `\nZelle: ${profile.zelle_contact}`;
+      }
+
+      text += `\nPreferred: ${
+        profile.preferred_payment_method === "either"
+          ? "Venmo or Zelle"
+          : profile.preferred_payment_method === "venmo"
+            ? "Venmo"
+            : "Zelle"
+      }`;
     }
 
     return text;
@@ -267,7 +348,6 @@ export default function ResultsPage() {
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-8 text-zinc-900">
       <div className="mx-auto max-w-lg">
-        {/* Back */}
         <Link
           href="/assign"
           className="mb-5 inline-flex items-center text-sm font-medium text-zinc-500 hover:text-black"
@@ -275,7 +355,6 @@ export default function ResultsPage() {
           ← Back
         </Link>
 
-        {/* Header */}
         <div className="mb-8">
           <p className="text-sm font-medium text-zinc-500">
             Moses
@@ -307,7 +386,9 @@ export default function ResultsPage() {
               </span>
 
               <span className="font-medium">
-                {formatReceiptCurrency(itemsSubtotal)}
+                {formatReceiptCurrency(
+                  itemsSubtotal
+                )}
               </span>
             </div>
 
@@ -321,7 +402,9 @@ export default function ResultsPage() {
 
                 <span className="font-medium">
                   {adjustment >= 0 ? "+" : ""}
-                  {formatReceiptCurrency(adjustment)}
+                  {formatReceiptCurrency(
+                    adjustment
+                  )}
                 </span>
               </div>
             )}
@@ -340,7 +423,7 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        {/* People */}
+        {/* Person Results */}
         <div className="space-y-4">
           {results.map((person) => (
             <div
@@ -369,31 +452,36 @@ export default function ResultsPage() {
                   </p>
 
                   <p className="mt-1 text-sm text-zinc-500">
-                    {getUsdText(person.finalTotal)}
+                    {getUsdText(
+                      person.finalTotal
+                    )}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 border-t border-zinc-100 pt-4">
                 <div className="space-y-2">
-                  {person.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-4 text-sm"
-                    >
-                      <span className="text-zinc-600">
-                        {item.name}
-                      </span>
+                  {person.items.map(
+                    (item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-4 text-sm"
+                      >
+                        <span className="text-zinc-600">
+                          {item.name}
+                        </span>
 
-                      <span className="font-medium">
-                        {formatReceiptCurrency(
-                          item.amount
-                        )}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="font-medium">
+                          {formatReceiptCurrency(
+                            item.amount
+                          )}
+                        </span>
+                      </div>
+                    )
+                  )}
 
-                  {Math.abs(adjustment) > 0.009 && (
+                  {Math.abs(adjustment) >
+                    0.009 && (
                     <div className="flex items-center justify-between gap-4 border-t border-zinc-100 pt-2 text-sm">
                       <span className="text-zinc-500">
                         {adjustment >= 0
@@ -402,9 +490,11 @@ export default function ResultsPage() {
                       </span>
 
                       <span className="font-medium">
-                        {person.adjustmentShare >= 0
+                        {person.adjustmentShare >=
+                        0
                           ? "+"
                           : ""}
+
                         {formatReceiptCurrency(
                           person.adjustmentShare
                         )}
@@ -417,7 +507,7 @@ export default function ResultsPage() {
           ))}
         </div>
 
-        {/* Total */}
+        {/* Final Total */}
         <div className="mt-6 rounded-2xl bg-black p-5 text-white">
           <div className="flex items-center justify-between">
             <span className="text-zinc-300">
@@ -432,15 +522,17 @@ export default function ResultsPage() {
               </p>
 
               <p className="mt-1 text-sm text-zinc-400">
-                {getUsdText(finalReceiptTotal)}
+                {getUsdText(
+                  finalReceiptTotal
+                )}
               </p>
             </div>
           </div>
 
           {Math.abs(adjustment) > 0.009 && (
             <p className="mt-4 text-xs text-zinc-400">
-              Fees are split proportionally based on
-              each person&apos;s share of the items.
+              Fees are split proportionally based on each
+              person&apos;s share of the items.
             </p>
           )}
 
@@ -449,7 +541,9 @@ export default function ResultsPage() {
               <p className="mt-2 text-xs text-zinc-400">
                 1 {receiptCurrency} = $
                 {usdRate.toFixed(4)} USD
-                {rateDate ? ` • ${rateDate}` : ""}
+                {rateDate
+                  ? ` • ${rateDate}`
+                  : ""}
               </p>
             )}
 
@@ -460,12 +554,21 @@ export default function ResultsPage() {
           )}
         </div>
 
+        {/* Payment Details */}
+        <PaymentDetailsCard
+          profile={profile}
+          loggedIn={loggedIn}
+          loading={profileLoading}
+        />
+
+        {/* Share */}
         <button
           type="button"
           onClick={shareBreakdown}
           className="mt-6 w-full rounded-2xl border border-zinc-300 bg-white px-5 py-4 font-semibold hover:bg-zinc-100"
         >
-          {shareStatus || "Share Breakdown"}
+          {shareStatus ||
+            "Share Breakdown"}
         </button>
 
         <button
