@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSplit } from "@/context/SplitContext";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 export default function Home() {
   const router = useRouter();
+  const { resetSplit } = useSplit();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -174,9 +176,10 @@ export default function Home() {
   }
 
   function useDemoReceipt() {
-    setError("");
-    router.push("/review");
-  }
+  setError("");
+  resetSplit();
+  router.push("/review");
+}
 
   return (
     <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900">
