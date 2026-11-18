@@ -5,7 +5,7 @@ in the root directory, run:
 ```bash
 uv sync
 cp .env.example .env     # then put your OPENAI_API_KEY in it
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Open <http://127.0.0.1:8000>. Press **Start camera** and allow camera access,
