@@ -1,0 +1,15 @@
+[project]
+name = "receipt-scanner"
+version = "2.0.0"
+description = "Webcam receipt scanner built on the receipt-ocr LLM pipeline."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "python-multipart",
+  "python-dotenv",
+  "receipt-ocr",
+]
+
+[tool.uv.sources]
+receipt-ocr = { git = "https://github.com/bhimrazy/receipt-ocr", rev = "ac1c5fcd9c0d6fcea27aa2a39d2fd2ff54914a24" }
